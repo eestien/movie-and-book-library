@@ -3,7 +3,10 @@ let library = []
 let currentFilter = "all"
 let currentSearch = ""
 let selectedRating = 0
+let currentSort = "none"
 
+// Google Sheets integration config (fill these in when you deploy your Apps Script)
+// It's okay to commit in this repo per your note, since you will use a separate sheet.
 const SHEETS_ENDPOINT = "https://script.google.com/macros/s/AKfycbyJ8mckrd2RK8TsH-wL6TdvgcIoPRuYROwlpa7hpCOwVaMBS4SxBnWU4El7ziEbdffj/exec"
 const SHEETS_TOKEN = "2f37de262d4be0b25c0a55d071b0c277b13942dec975e973c96d1556b6630e56"
 
@@ -324,6 +327,17 @@ function initializeEventListeners() {
     renderLibrary()
   })
 
+  // Sort
+  const sortEl = document.getElementById("sortSelect")
+  if (sortEl) {
+    // Initialize state from current selection
+    currentSort = sortEl.value || "none"
+    sortEl.addEventListener("change", (e) => {
+      currentSort = e.target.value || "none"
+      renderLibrary()
+    })
+  }
+
   // Add item button
   document.getElementById("addItemBtn").addEventListener("click", openModal)
 
@@ -502,6 +516,51 @@ function renderLibrary() {
   const emptyState = document.getElementById("emptyState")
   const filteredLibrary = getFilteredLibrary()
 
+  // Apply sorting
+  const items = [...filteredLibrary]
+  const byTitle = (a, b) => a.title.localeCompare(b.title)
+  switch (currentSort) {
+    case "year_desc": {
+      items.sort((a, b) => {
+        const ay = Number.isFinite(Number(a.year)) ? Number(a.year) : -Infinity
+        const by = Number.isFinite(Number(b.year)) ? Number(b.year) : -Infinity
+        if (by !== ay) return by - ay
+        return byTitle(a, b)
+      })
+      break
+    }
+    case "year_asc": {
+      items.sort((a, b) => {
+        const ay = Number.isFinite(Number(a.year)) ? Number(a.year) : Infinity
+        const by = Number.isFinite(Number(b.year)) ? Number(b.year) : Infinity
+        if (ay !== by) return ay - by
+        return byTitle(a, b)
+      })
+      break
+    }
+    case "rating_desc": {
+      items.sort((a, b) => {
+        const ar = Number.isFinite(Number(a.rating)) ? Number(a.rating) : -Infinity
+        const br = Number.isFinite(Number(b.rating)) ? Number(b.rating) : -Infinity
+        if (br !== ar) return br - ar
+        return byTitle(a, b)
+      })
+      break
+    }
+    case "rating_asc": {
+      items.sort((a, b) => {
+        const ar = Number.isFinite(Number(a.rating)) ? Number(a.rating) : Infinity
+        const br = Number.isFinite(Number(b.rating)) ? Number(b.rating) : Infinity
+        if (ar !== br) return ar - br
+        return byTitle(a, b)
+      })
+      break
+    }
+    default:
+      // keep current order (newest added first)
+      break
+  }
+
   if (filteredLibrary.length === 0) {
     grid.style.display = "none"
     emptyState.style.display = "block"
@@ -511,7 +570,7 @@ function renderLibrary() {
   grid.style.display = "grid"
   emptyState.style.display = "none"
 
-  grid.innerHTML = filteredLibrary
+  grid.innerHTML = items
     .map(
       (item) => `
     <div class="library-card">
