@@ -193,6 +193,44 @@ body {
   color: var(--muted-foreground);
 }
 
+/* Sort */
+.sort-box {
+  flex-shrink: 0;
+  max-width: 220px;
+  background-color: var(--muted);
+  padding: 0.25rem;
+  border-radius: var(--radius);
+}
+
+.select-wrapper {
+  position: relative;
+  display: block;
+}
+
+.sort-select {
+  background-color: transparent; /* match .filter-tab */
+  border: none;
+  color: var(--muted-foreground);
+  padding: 0.5rem 1rem; /* match .filter-tab */
+  border-radius: calc(var(--radius) - 0.25rem);
+  font-size: 0.875rem; /* match .filter-tab */
+  font-weight: 500;      /* match .filter-tab */
+  font-family: inherit;
+  line-height: 1;        /* closer to button */
+  outline: none;
+  transition: color 0.2s, background-color 0.2s;
+  cursor: pointer;
+}
+
+.sort-select:focus {
+  box-shadow: none;
+  outline: none;
+}
+
+.sort-select:hover {
+  color: var(--foreground);
+}
+
 /* Stats */
 .stats {
   display: grid;
@@ -499,6 +537,15 @@ body {
 
   .search-box {
     max-width: none;
+  }
+
+  .sort-box {
+    width: 100%;
+    max-width: none;
+  }
+
+  .sort-select {
+    width: 100%;
   }
 
   .library-grid {
