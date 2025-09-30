@@ -4,6 +4,8 @@ let currentFilter = "all"
 let currentSearch = ""
 let selectedRating = 0
 let currentSort = "none"
+let currentPage = 1
+const PAGE_SIZE = 100
 
 // Google Sheets integration config (fill these in when you deploy your Apps Script)
 // It's okay to commit in this repo per your note, since you will use a separate sheet.
@@ -317,6 +319,7 @@ function initializeEventListeners() {
       document.querySelectorAll(".filter-tab").forEach((t) => t.classList.remove("active"))
       e.target.classList.add("active")
       currentFilter = e.target.dataset.filter
+      currentPage = 1
       renderLibrary()
     })
   })
@@ -324,6 +327,7 @@ function initializeEventListeners() {
   // Search
   document.getElementById("searchInput").addEventListener("input", (e) => {
     currentSearch = e.target.value.toLowerCase()
+    currentPage = 1
     renderLibrary()
   })
 
@@ -334,6 +338,7 @@ function initializeEventListeners() {
     currentSort = sortEl.value || "none"
     sortEl.addEventListener("change", (e) => {
       currentSort = e.target.value || "none"
+      currentPage = 1
       renderLibrary()
     })
   }
@@ -382,6 +387,25 @@ function initializeEventListeners() {
     renderDuplicateSuggestions()
   })
   if (yearEl) yearEl.addEventListener("input", renderDuplicateSuggestions)
+
+  // Pagination controls
+  const pagination = document.getElementById("pagination")
+  if (pagination) {
+    pagination.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-action]")
+      if (!btn) return
+      const action = btn.getAttribute("data-action")
+      const total = getFilteredLibrary().length
+      const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+      if (action === "prev" && currentPage > 1) {
+        currentPage -= 1
+        renderLibrary()
+      } else if (action === "next" && currentPage < totalPages) {
+        currentPage += 1
+        renderLibrary()
+      }
+    })
+  }
 }
 
 // Open modal
@@ -564,13 +588,23 @@ function renderLibrary() {
   if (filteredLibrary.length === 0) {
     grid.style.display = "none"
     emptyState.style.display = "block"
+    renderPagination(0, 1, PAGE_SIZE)
     return
   }
 
   grid.style.display = "grid"
   emptyState.style.display = "none"
 
-  grid.innerHTML = items
+  // Pagination computations
+  const totalItems = items.length
+  const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE))
+  if (currentPage > totalPages) currentPage = totalPages
+  if (currentPage < 1) currentPage = 1
+  const start = (currentPage - 1) * PAGE_SIZE
+  const end = start + PAGE_SIZE
+  const visible = items.slice(start, end)
+
+  grid.innerHTML = visible
     .map(
       (item) => `
     <div class="library-card">
@@ -618,6 +652,27 @@ function renderLibrary() {
   `,
     )
     .join("")
+
+  renderPagination(totalItems, currentPage, PAGE_SIZE)
+}
+
+function renderPagination(totalItems, page, pageSize) {
+  const nav = document.getElementById("pagination")
+  if (!nav) return
+  if (!totalItems || totalItems <= pageSize) {
+    nav.style.display = "none"
+    nav.innerHTML = ""
+    return
+  }
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
+  const from = (page - 1) * pageSize + 1
+  const to = Math.min(page * pageSize, totalItems)
+  nav.style.display = "flex"
+  nav.innerHTML = `
+    <button class="btn-secondary" data-action="prev" ${page <= 1 ? "disabled" : ""}>Prev</button>
+    <span class="page-info">${from}-${to} of ${totalItems} • Page ${page} / ${totalPages}</span>
+    <button class="btn-primary" data-action="next" ${page >= totalPages ? "disabled" : ""}>Next</button>
+  `
 }
 
 // Update statistics
