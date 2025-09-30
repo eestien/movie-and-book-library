@@ -4,8 +4,6 @@ let currentFilter = "all"
 let currentSearch = ""
 let selectedRating = 0
 
-// Google Sheets integration config (fill these in when you deploy your Apps Script)
-// It's okay to commit in this repo per your note, since you will use a separate sheet.
 const SHEETS_ENDPOINT = "https://script.google.com/macros/s/AKfycbyJ8mckrd2RK8TsH-wL6TdvgcIoPRuYROwlpa7hpCOwVaMBS4SxBnWU4El7ziEbdffj/exec"
 const SHEETS_TOKEN = "2f37de262d4be0b25c0a55d071b0c277b13942dec975e973c96d1556b6630e56"
 
@@ -79,6 +77,104 @@ function deriveImagePath(title, year) {
   // Most files are jpg; our downloader chose extension by content-type/URL.
   // We will try .jpg by default; the <img> onerror is already handled in render to hide missing images.
   return `public/movies/${filename}.jpg`
+}
+
+// Build a normalized key to detect duplicates consistently
+function makeDedupeKey(it) {
+  const type = (it.type || "").toLowerCase().trim()
+  const title = slugify(it.title || "")
+  const y = normalizeYear(it.year)
+  return `${type}|${title}|${y || ""}`
+}
+
+// Return a new array with only the first occurrence for each dedupe key
+function uniqueByKey(items) {
+  const seen = new Set()
+  const out = []
+  for (const it of items || []) {
+    const key = makeDedupeKey(it)
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(it)
+  }
+  return out
+}
+
+// ===== Duplicate suggestions (live while typing) =====
+function normalizeTitleForMatch(s) {
+  return slugify(s || "")
+}
+
+function computeDuplicateSuggestions(queryTitle, queryType, queryYear, limit = 5) {
+  const qTitle = normalizeTitleForMatch(queryTitle)
+  const qYear = normalizeYear(queryYear)
+  if (!qTitle || qTitle.length < 2) return []
+  // Find items whose normalized title contains the query (or vice versa)
+  const matches = []
+  for (const it of library) {
+    const itTitle = normalizeTitleForMatch(it.title)
+    if (!itTitle) continue
+    const contains = itTitle.includes(qTitle) || qTitle.includes(itTitle)
+    if (!contains) continue
+    // score: prioritize same type and same year, then startsWith
+    let score = 0
+    if ((it.type || "").toLowerCase() === (queryType || "").toLowerCase()) score += 2
+    if (qYear != null && qYear !== "" && String(it.year) === String(qYear)) score += 1
+    if (itTitle.startsWith(qTitle)) score += 1
+    matches.push({ it, score })
+  }
+  matches.sort((a, b) => b.score - a.score)
+  return matches.slice(0, limit).map(m => m.it)
+}
+
+function renderDuplicateSuggestions() {
+  const box = document.getElementById("duplicateSuggestions")
+  if (!box) return
+  const titleEl = document.getElementById("itemTitle")
+  const typeEl = document.getElementById("itemType")
+  const yearEl = document.getElementById("itemYear")
+  const title = titleEl ? titleEl.value : ""
+  const type = typeEl ? typeEl.value : ""
+  const year = yearEl ? yearEl.value : ""
+  const suggestions = computeDuplicateSuggestions(title, type, year)
+  if (!suggestions.length) {
+    box.innerHTML = ""
+    box.style.display = "none"
+    return
+  }
+  const itemsHtml = suggestions
+    .map((it) => {
+      const ratingHtml = (() => {
+        const r = Number(it.rating)
+        if (!Number.isFinite(r) || r <= 0) return ""
+        if (it.type === "movie") {
+          const numeric = Number.isInteger(r) ? `${r}.0` : `${r}`
+          return `<span class=\"sugg-rating\">${numeric}/10</span>`
+        } else {
+          const filled = Math.max(0, Math.min(5, Math.round(r)))
+          const stars = Array(5).fill(0).map((_, i) => (i < filled ? "★" : "☆")).join("")
+          return `<span class=\"sugg-rating\">${stars}</span>`
+        }
+      })()
+      return `<div class=\"sugg-item\">
+        <span class=\"sugg-type\">${it.type}</span>
+        <span class=\"sugg-title\">${it.title}</span>
+        <span class=\"sugg-creator\">${it.creator || ""}</span>
+        <span class=\"sugg-year\">${it.year || ""}</span>
+        ${ratingHtml}
+      </div>`
+    })
+    .join("")
+  box.innerHTML = `<div class=\"sugg-header\">Possible duplicates in your library:</div>${itemsHtml}`
+  box.style.display = "block"
+}
+
+function clearDuplicateSuggestions() {
+  const box = document.getElementById("duplicateSuggestions")
+  if (box) {
+    box.innerHTML = ""
+    box.style.display = "none"
+  }
 }
 
 // Minimal CSV parser for our 3-column file supporting quotes and commas
@@ -163,7 +259,7 @@ async function loadLibrary() {
     return null
   })
   if (Array.isArray(fromSheets)) {
-    library = fromSheets
+    library = uniqueByKey(fromSheets)
     return
   }
 
@@ -200,6 +296,7 @@ async function loadLibrary() {
         }
       })
       .filter((item) => item.title)
+    library = uniqueByKey(library)
   } catch (e) {
     console.error(e)
     library = []
@@ -260,6 +357,17 @@ function initializeEventListeners() {
 
   // Form submit
   document.getElementById("addItemForm").addEventListener("submit", handleAddItem)
+
+  // Live duplicate suggestions while typing/changing fields
+  const titleEl = document.getElementById("itemTitle")
+  const typeEl = document.getElementById("itemType")
+  const yearEl = document.getElementById("itemYear")
+  if (titleEl) titleEl.addEventListener("input", renderDuplicateSuggestions)
+  if (typeEl) typeEl.addEventListener("change", () => {
+    updateRatingGroups()
+    renderDuplicateSuggestions()
+  })
+  if (yearEl) yearEl.addEventListener("input", renderDuplicateSuggestions)
 }
 
 // Open modal
@@ -274,6 +382,7 @@ function openModal() {
   if (movieRatingInput) movieRatingInput.value = ""
   updateRatingStars()
   updateRatingGroups()
+  clearDuplicateSuggestions()
 }
 
 // Close modal
@@ -288,6 +397,7 @@ function closeModal() {
   const hiddenBookRating = document.getElementById("itemRating")
   if (hiddenBookRating) hiddenBookRating.value = 0
   updateRatingGroups()
+  clearDuplicateSuggestions()
 }
 
 // Update rating stars display
@@ -348,7 +458,13 @@ function handleAddItem(e) {
     notes: document.getElementById("itemNotes").value,
     image: document.getElementById("itemImage").value || null,
   }
-
+  // Block duplicates on add
+  const key = makeDedupeKey(newItem)
+  const exists = library.some((it) => makeDedupeKey(it) === key)
+  if (exists) {
+    alert("This item already exists.")
+    return
+  }
   library.unshift(newItem)
   renderLibrary()
   updateStats()
@@ -515,7 +631,18 @@ async function pushToSheets() {
   if (!SHEETS_TOKEN || SHEETS_TOKEN.startsWith("REPLACE_")) return
   setLoading(true, "Synchronizing…")
   try {
-    const payload = { token: SHEETS_TOKEN, items: toPlainItems() }
+    // Deduplicate before pushing to server
+    const items = uniqueByKey(library).map((it) => ({
+      id: String(it.id),
+      type: it.type,
+      title: it.title,
+      creator: it.creator,
+      year: it.year ?? "",
+      rating: it.rating ?? "",
+      notes: it.notes ?? "",
+      image: it.image ?? "",
+    }))
+    const payload = { token: SHEETS_TOKEN, items }
     const res = await fetch(SHEETS_ENDPOINT, {
       method: "POST",
       // Use text/plain to avoid preflight on Apps Script
