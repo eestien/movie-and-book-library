@@ -1,152 +1,162 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Virtual Library</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <div class="container">
-    <!-- Header -->
-    <header class="header">
-      <div class="header-content">
-        <div class="header-left">
-          <svg class="logo-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Virtual Library</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-content">
+          <div class="header-left">
+            <svg class="logo-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+            <div>
+              <h1 class="header-title">Movie and Book Library</h1>
+              <p class="header-subtitle">Hand-crafted collection</p>
+            </div>
+          </div>
+          <button class="btn-primary" id="addItemBtn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Add Item
+          </button>
+        </div>
+      </header>
+
+      <!-- Loading Indicator -->
+      <div id="loadingIndicator" class="loading-indicator" style="display: none;" aria-live="polite">
+        <div class="spinner" aria-hidden="true"></div>
+        <span class="loading-text">Loading…</span>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters">
+        <div class="filter-tabs">
+          <button class="filter-tab active" data-filter="all">All Items</button>
+          <button class="filter-tab" data-filter="book">Books</button>
+          <button class="filter-tab" data-filter="movie">Movies</button>
+        </div>
+        <div class="search-box">
+          <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
           </svg>
-          <div>
-            <h1 class="header-title">Movie and Book Library</h1>
-            <p class="header-subtitle">Hand-crafted collection</p>
+          <input type="text" id="searchInput" placeholder="Search your library..." class="search-input">
+        </div>
+        <div class="sort-box">
+          <div class="select-wrapper">
+            <select id="sortSelect" class="sort-select" aria-label="Sort items">
+              <option value="year_desc">Year: Newest</option>
+              <option value="year_asc">Year: Oldest</option>
+              <option value="rating_desc">Rating: High to Low</option>
+              <option value="rating_asc">Rating: Low to High</option>
+            </select>
           </div>
         </div>
-        <button class="btn-primary" id="addItemBtn">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-          </svg>
-          Add Item
-        </button>
       </div>
-    </header>
 
-    <!-- Loading Indicator -->
-    <div id="loadingIndicator" class="loading-indicator" style="display: none;" aria-live="polite">
-      <div class="spinner" aria-hidden="true"></div>
-      <span class="loading-text">Loading…</span>
-    </div>
-
-    <!-- Filters -->
-    <div class="filters">
-      <div class="filter-tabs">
-        <button class="filter-tab active" data-filter="all">All Items</button>
-        <button class="filter-tab" data-filter="book">Books</button>
-        <button class="filter-tab" data-filter="movie">Movies</button>
+      <!-- Stats -->
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-value" id="totalCount">0</div>
+          <div class="stat-label">Total Items</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="bookCount">0</div>
+          <div class="stat-label">Books</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="movieCount">0</div>
+          <div class="stat-label">Movies</div>
+        </div>
       </div>
-      <div class="search-box">
-        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"></circle>
-          <path d="m21 21-4.35-4.35"></path>
+
+      <!-- Library Grid -->
+      <div class="library-grid" id="libraryGrid">
+        <!-- Items will be inserted here -->
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-state" id="emptyState" style="display: none;">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
         </svg>
-        <input type="text" id="searchInput" placeholder="Search your library..." class="search-input">
+        <h3>Your library is empty</h3>
+        <p>Start building your collection by adding your favorite books and movies</p>
       </div>
     </div>
 
-    <!-- Stats -->
-    <div class="stats">
-      <div class="stat-card">
-        <div class="stat-value" id="totalCount">0</div>
-        <div class="stat-label">Total Items</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="bookCount">0</div>
-        <div class="stat-label">Books</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="movieCount">0</div>
-        <div class="stat-label">Movies</div>
-      </div>
-    </div>
-
-    <!-- Library Grid -->
-    <div class="library-grid" id="libraryGrid">
-      <!-- Items will be inserted here -->
-    </div>
-
-    <!-- Empty State -->
-    <div class="empty-state" id="emptyState" style="display: none;">
-      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-      </svg>
-      <h3>Your library is empty</h3>
-      <p>Start building your collection by adding your favorite books and movies</p>
-    </div>
-  </div>
-
-  <!-- Add Item Modal -->
-  <div class="modal" id="addItemModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Add to Library</h2>
-        <button class="close-btn" id="closeModalBtn">&times;</button>
-      </div>
-      <form id="addItemForm">
-        <div class="form-group">
-          <label for="itemType">Type</label>
-          <select id="itemType" required>
-            <option value="book">Book</option>
-            <option value="movie">Movie</option>
-          </select>
+    <!-- Add Item Modal -->
+    <div class="modal" id="addItemModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Add to Library</h2>
+          <button class="close-btn" id="closeModalBtn">&times;</button>
         </div>
-        <div class="form-group">
-          <label for="itemTitle">Title</label>
-          <input type="text" id="itemTitle" placeholder="Enter title" required>
-        </div>
-        <!-- Live duplicate suggestions -->
-        <div class="form-group" id="duplicateSuggestions" aria-live="polite" style="margin-top:-0.5rem;">
-          <!-- Suggestions will appear here while typing -->
-        </div>
-        <div class="form-group">
-          <label for="itemCreator">Author/Director</label>
-          <input type="text" id="itemCreator" placeholder="Enter name" required>
-        </div>
-        <div class="form-group">
-          <label for="itemYear">Year</label>
-          <input type="number" id="itemYear" placeholder="2024" min="0" max="2100" required>
-        </div>
-        <div class="form-group" id="bookRatingGroup">
-          <label for="itemRating">Rating (Books: 0–5)</label>
-          <div class="rating-input">
-            <span class="star" data-rating="1">☆</span>
-            <span class="star" data-rating="2">☆</span>
-            <span class="star" data-rating="3">☆</span>
-            <span class="star" data-rating="4">☆</span>
-            <span class="star" data-rating="5">☆</span>
+        <form id="addItemForm">
+          <div class="form-group">
+            <label for="itemType">Type</label>
+            <select id="itemType" required>
+              <option value="book">Book</option>
+              <option value="movie">Movie</option>
+            </select>
           </div>
-          <input type="hidden" id="itemRating" value="0">
-        </div>
-        <div class="form-group" id="movieRatingGroup" style="display: none;">
-          <label for="itemRatingMovie">Rating (Movies: 0–10)</label>
-          <input type="number" id="itemRatingMovie" min="0" max="10" step="0.1" placeholder="e.g., 7.5">
-        </div>
-        <div class="form-group">
-          <label for="itemNotes">Notes (Optional)</label>
-          <textarea id="itemNotes" placeholder="Add your thoughts..." rows="3"></textarea>
-        </div>
-        <div class="form-group">
-          <label for="itemImage">Cover Image URL (Optional)</label>
-          <input type="url" id="itemImage" placeholder="https://example.com/image.jpg">
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn-secondary" id="cancelBtn">Cancel</button>
-          <button type="submit" class="btn-primary">Add to Library</button>
-        </div>
-      </form>
+          <div class="form-group">
+            <label for="itemTitle">Title</label>
+            <input type="text" id="itemTitle" placeholder="Enter title" required>
+          </div>
+          <!-- Live duplicate suggestions -->
+          <div class="form-group" id="duplicateSuggestions" aria-live="polite" style="margin-top:-0.5rem;">
+            <!-- Suggestions will appear here while typing -->
+          </div>
+          <div class="form-group">
+            <label for="itemCreator">Author/Director</label>
+            <input type="text" id="itemCreator" placeholder="Enter name" required>
+          </div>
+          <div class="form-group">
+            <label for="itemYear">Year</label>
+            <input type="number" id="itemYear" placeholder="2024" min="0" max="2100" required>
+          </div>
+          <div class="form-group" id="bookRatingGroup">
+            <label for="itemRating">Rating (Books: 0–5)</label>
+            <div class="rating-input">
+              <span class="star" data-rating="1">☆</span>
+              <span class="star" data-rating="2">☆</span>
+              <span class="star" data-rating="3">☆</span>
+              <span class="star" data-rating="4">☆</span>
+              <span class="star" data-rating="5">☆</span>
+            </div>
+            <input type="hidden" id="itemRating" value="0">
+          </div>
+          <div class="form-group" id="movieRatingGroup" style="display: none;">
+            <label for="itemRatingMovie">Rating (Movies: 0–10)</label>
+            <input type="number" id="itemRatingMovie" min="0" max="10" step="0.1" placeholder="e.g., 7.5">
+          </div>
+          <div class="form-group">
+            <label for="itemNotes">Notes (Optional)</label>
+            <textarea id="itemNotes" placeholder="Add your thoughts..." rows="3"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="itemImage">Cover Image URL (Optional)</label>
+            <input type="url" id="itemImage" placeholder="https://example.com/image.jpg">
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" id="cancelBtn">Cancel</button>
+            <button type="submit" class="btn-primary">Add to Library</button>
+          </div>
+        </form>
+      </div>
     </div>
-  </div>
 
-  <script src="script.js"></script>
-</body>
-</html>
+    <script src="script.js"></script>
+  </body>
+  </html>
