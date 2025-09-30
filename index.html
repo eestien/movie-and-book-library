@@ -48,15 +48,14 @@
           <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="11" cy="11" r="8"></circle>
             <path d="m21 21-4.35-4.35"></path>
-          </svg>
           <input type="text" id="searchInput" placeholder="Search your library..." class="search-input">
         </div>
         <div class="sort-box">
           <div class="select-wrapper">
             <select id="sortSelect" class="sort-select" aria-label="Sort items">
+              <option value="rating_desc" selected>Rating: High to Low</option>
               <option value="year_desc">Year: Newest</option>
               <option value="year_asc">Year: Oldest</option>
-              <option value="rating_desc">Rating: High to Low</option>
               <option value="rating_asc">Rating: Low to High</option>
             </select>
           </div>
@@ -64,7 +63,6 @@
       </div>
 
       <!-- Stats -->
-      <div class="stats">
         <div class="stat-card">
           <div class="stat-value" id="totalCount">0</div>
           <div class="stat-label">Total Items</div>
